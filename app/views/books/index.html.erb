@@ -1,0 +1,9 @@
+<h1>List of books</h1>
+<div>
+  <%= link_to 'Create new book', new_book_path %>
+</div>
+
+<ul>
+<% @books.each do |book| %>
+  <li><%= "#{book.title} (#{book.description}), rating: #{book.rating}" %></li>
+<% end %>
