@@ -1,9 +1,13 @@
----
 version: 2
+
 jobs:
   build:
-    working_directory: ~/docker_rails_app
     docker:
+      # the Docker image with Cypress dependencies
+      - image: cypress/base:8
+        environment:
+          ## this enables colors in the output
+          TERM: xterm
       - image: circleci/ruby:2.5.3-node
         environment:
           PGHOST: localhost
@@ -14,13 +18,11 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: docker_rails_app_test
           POSTGRES_PASSWORD: ""
-      - image: cypress/base:8
-        environment:
-          TERM: xterm
+    working_directory: ~/docker_rails_app
+    parallelism: 1
     steps:
       - checkout
-
-      # Restore Cached Dependencies
+            # Restore Cached Dependencies
       - type: cache-restore
         name: Restore bundle cache
         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
@@ -40,8 +42,11 @@ jobs:
 
       # Run the tests
       - run: bundle exec rake
-
-      # Run Cypress
+      - restore_cache:
+          keys:
+            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v2-deps-{{ .Branch }}-
+            - v2-deps-
       - run: npm ci
       - save_cache:
           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -50,7 +55,7 @@ jobs:
             - ~/.cache
       - run:
           name: Running E2E tests with JUnit reporter
-          command: $(yarn bin)/cypress run
+          command: npm run test-junit
       - store_test_results:
           path: junit-results
       - run:
