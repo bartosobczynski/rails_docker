@@ -5,9 +5,6 @@ jobs:
     docker:
       # the Docker image with Cypress dependencies
       - image: cypress/base:8
-        environment:
-          ## this enables colors in the output
-          TERM: xterm
       - image: circleci/ruby:2.5.3-node
         environment:
           PGHOST: localhost
@@ -22,7 +19,7 @@ jobs:
     parallelism: 1
     steps:
       - checkout
-            # Restore Cached Dependencies
+
       - type: cache-restore
         name: Restore bundle cache
         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
