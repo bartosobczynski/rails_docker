@@ -4,7 +4,6 @@ jobs:
   build:
     docker:
       # the Docker image with Cypress dependencies
-      - image: cypress/base:8
       - image: circleci/ruby:2.5.3-node
         environment:
           PGHOST: localhost
@@ -15,6 +14,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: docker_rails_app_test
           POSTGRES_PASSWORD: ""
+      - image: cypress/base:8
     working_directory: ~/docker_rails_app
     parallelism: 1
     steps:
