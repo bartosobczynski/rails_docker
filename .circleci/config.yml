@@ -1,22 +1,47 @@
+---
 version: 2
-
 jobs:
   build:
+    working_directory: ~/docker_rails_app
     docker:
-      # the Docker image with Cypress dependencies
+      - image: circleci/ruby:2.5.3-node
+        environment:
+          PGHOST: localhost
+          PGUSER: docker_rails_app
+          RAILS_ENV: test
+      - image: postgres:9.5
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: docker_rails_app_test
+          POSTGRES_PASSWORD: ""
       - image: cypress/base:8
         environment:
-          ## this enables colors in the output
           TERM: xterm
-    working_directory: ~/app
-    parallelism: 1
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
-            - v2-deps-{{ .Branch }}-
-            - v2-deps-
+
+      # Restore Cached Dependencies
+      - type: cache-restore
+        name: Restore bundle cache
+        key: docker_rails_app-{{ checksum "Gemfile.lock" }}
+
+      # Bundle install dependencies
+      - run: bundle install --path vendor/bundle
+
+      # Cache Dependencies
+      - type: cache-save
+        name: Store bundle cache
+        key: docker_rails_app-{{ checksum "Gemfile.lock" }}
+        paths:
+          - vendor/bundle
+
+      # Wait for DB
+      - run: dockerize -wait tcp://localhost:5432 -timeout 1m
+
+      # Run the tests
+      - run: bundle exec rake
+
+      # Run Cypress
       - run: npm ci
       - save_cache:
           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
