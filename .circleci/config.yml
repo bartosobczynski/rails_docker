@@ -45,10 +45,13 @@ jobs:
           paths:
             - ~/.npm
             - ~/.cache
+
+      - run: apt-get install xvfb libgtk2.0-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2
+
       - run:
           name: Running E2E tests
-          command: apt-get install xvfb libgtk2.0-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2
           command: $(npm bin)/cypress run
+
       - store_test_results:
           path: junit-results
       - run:
