@@ -39,11 +39,6 @@ jobs:
 
       # Run the tests
       - run: bundle exec rake
-      - restore_cache:
-          keys:
-            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
-            - v2-deps-{{ .Branch }}-
-            - v2-deps-
       - run: npm ci
       - save_cache:
           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -51,8 +46,8 @@ jobs:
             - ~/.npm
             - ~/.cache
       - run:
-          name: Running E2E tests with JUnit reporter
-          command: npm run test-junit
+          name: Running E2E tests
+          command: $(npm bin)/cypress run
       - store_test_results:
           path: junit-results
       - run:
