@@ -1,90 +1,39 @@
-version: 2.1
-
-orbs:
-  aws-cli: circleci/aws-cli@0.1.11
-
-commands:
-  build_app:
-    steps:
-      - attach_workspace:
-          at: ~/repo
-      - run: yarn build
-      - persist_to_workspace:
-          root: ~/repo
-          paths:
-            - build
-
-executors:
-  node-machine:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/node:10.15.0-stretch
-
-  python-machine:
-    working_directory: ~/repo
-    docker:
-      - image: circleci/python:2.7-jessie
+version: 2
 
 jobs:
-  checkout_code:
-    executor: node-machine
-    steps:
-      - checkout
-      - persist_to_workspace:
-          root: ~/repo
-          paths:
-            - .
-
-  bundle_yarn:
-    executor: node-machine
-    steps:
-      - attach_workspace:
-          at: ~/repo
-      - restore_cache:
-          keys:
-            - build-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
-            - build-cache-{{ checksum "yarn.lock" }}-
-            - build-cache-
-      - run: yarn install --frozen-lockfile
-      - run: mkdir -p ~/repo/.Cypress
-      - run: if [ -r ~/.cache/Cypress ]; then rm -rf ~/repo/.Cypress/*; mv ~/.cache/Cypress ~/repo/.Cypress; fi
-      - save_cache:
-          key: build-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
-          paths:
-            - ~/repo/node_modules
-            - ~/repo/.Cypress
-      - persist_to_workspace:
-          root: ~/repo
-          paths:
-            - node_modules
-            - .Cypress
-
-  run_end_to_end_tests:
-    working_directory: ~/repo
+  build:
     docker:
+      # the Docker image with Cypress dependencies
       - image: cypress/base:8
         environment:
           ## this enables colors in the output
           TERM: xterm
+    working_directory: ~/app
+    parallelism: 1
     steps:
-      - attach_workspace:
-          at: ~/repo
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v2-deps-{{ .Branch }}-
+            - v2-deps-
+      - run: npm ci
+      - save_cache:
+          key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+            - ~/.cache
       - run:
-          name: Running E2E tests
-          command: CYPRESS_CACHE_FOLDER=~/repo/.Cypress/Cypress yarn cypress:run
+          name: Running E2E tests with JUnit reporter
+          command: $(yarn bin)/cypress run
+      - store_test_results:
+          path: junit-results
+      - run:
+          name: Running E2E tests with multiple reporters
+          command: npm run test-multiple
+      - store_test_results:
+          path: multiple-results
       - store_artifacts:
           path: cypress/videos
       - store_artifacts:
           path: cypress/screenshots
-
-workflows:
-  version: 2
-  run-lint-and-tests:
-    jobs:
-      - checkout_code
-      - bundle_yarn:
-          requires:
-            - checkout_code
-      - run_end_to_end_tests:
-          requires:
-            - checkout_code
