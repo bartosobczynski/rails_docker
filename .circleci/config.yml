@@ -19,8 +19,6 @@ jobs:
           TERM: xterm
     steps:
       - checkout
-      - attach_workspace:
-        at: ~/app
 
       # Restore Cached Dependencies
       - type: cache-restore
@@ -56,8 +54,7 @@ jobs:
       - save_cache:
           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
-            - ~/.npm
-            - ~/.cache
+            - ~/app/.npm
       - run:
           name: Running E2E tests with JUnit reporter
           command: $(yarn bin)/cypress run
