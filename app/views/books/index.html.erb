@@ -5,5 +5,10 @@
 
 <ul>
 <% @books.each do |book| %>
-  <li><%= "#{book.title} (#{book.description}), rating: #{book.rating}" %></li>
+  <div>
+    <span><%= book.title %></span>
+    <span><%= book.description %></span>
+    <span><%= book.rating %></span>
+    <span><%= link_to 'Edit', edit_book_path(book) %></span>
+  </div>
 <% end %>

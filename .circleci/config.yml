@@ -1,55 +1,95 @@
+# version: 2
+
+# jobs:
+#   build:
+#     docker:
+#       - image: circleci/ruby:2.5.3-node
+#         environment:
+#           PGHOST: localhost
+#           PGUSER: docker_rails_app
+#           RAILS_ENV: test
+#       - image: postgres:9.5
+#         environment:
+#           POSTGRES_USER: postgres
+#           POSTGRES_DB: docker_rails_app_test
+#           POSTGRES_PASSWORD: ""
+#       - image: cypress/base:8
+#     working_directory: ~/docker_rails_app
+#     parallelism: 1
+#     steps:
+#       - checkout
+
+#       - type: cache-restore
+#         name: Restore bundle cache
+#         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
+
+#       # Bundle install dependencies
+#       - run: bundle install --path vendor/bundle
+
+#       # Cache Dependencies
+#       - type: cache-save
+#         name: Store bundle cache
+#         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
+#         paths:
+#           - vendor/bundle
+
+#       # Wait for DB
+#       - run: dockerize -wait tcp://localhost:5432 -timeout 1m
+
+#       # Run the tests
+#       - run: bundle exec rake
+#       - run: npm ci
+#       - save_cache:
+#           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
+#           paths:
+#             - ~/.npm
+#             - ~/.cache
+
+#       - run:
+#           name: Running E2E tests
+#           command: $(npm bin)/cypress run
+
+#       - store_test_results:
+#           path: junit-results
+#       - run:
+#           name: Running E2E tests with multiple reporters
+#           command: npm run test-multiple
+#       - store_test_results:
+#           path: multiple-results
+#       - store_artifacts:
+#           path: cypress/videos
+#       - store_artifacts:
+#           path: cypress/screenshots
+
+
 version: 2
 
 jobs:
   build:
     docker:
       # the Docker image with Cypress dependencies
-      - image: circleci/ruby:2.5.3-node
-        environment:
-          PGHOST: localhost
-          PGUSER: docker_rails_app
-          RAILS_ENV: test
-      - image: postgres:9.5
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_DB: docker_rails_app_test
-          POSTGRES_PASSWORD: ""
       - image: cypress/base:8
-    working_directory: ~/docker_rails_app
+        environment:
+          ## this enables colors in the output
+          TERM: xterm
+    working_directory: ~/app
     parallelism: 1
     steps:
       - checkout
-
-      - type: cache-restore
-        name: Restore bundle cache
-        key: docker_rails_app-{{ checksum "Gemfile.lock" }}
-
-      # Bundle install dependencies
-      - run: bundle install --path vendor/bundle
-
-      # Cache Dependencies
-      - type: cache-save
-        name: Store bundle cache
-        key: docker_rails_app-{{ checksum "Gemfile.lock" }}
-        paths:
-          - vendor/bundle
-
-      # Wait for DB
-      - run: dockerize -wait tcp://localhost:5432 -timeout 1m
-
-      # Run the tests
-      - run: bundle exec rake
+      - restore_cache:
+          keys:
+            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v2-deps-{{ .Branch }}-
+            - v2-deps-
       - run: npm ci
       - save_cache:
           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
             - ~/.cache
-
       - run:
-          name: Running E2E tests
-          command: $(npm bin)/cypress run
-
+          name: Running E2E tests with JUnit reporter
+          command: npm run test-junit
       - store_test_results:
           path: junit-results
       - run:
