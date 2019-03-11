@@ -19,6 +19,8 @@ jobs:
           TERM: xterm
     steps:
       - checkout
+      - attach_workspace:
+        at: ~/app
 
       # Restore Cached Dependencies
       - type: cache-restore
