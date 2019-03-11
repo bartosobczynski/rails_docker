@@ -1,8 +1,4 @@
 describe('Test homepage', function() {
-  beforeEach(function () {
-    // reset and seed the database prior to every test
-    cy.exec('rake db:reset', { failOnNonZeroExit: false })
-  })
 
   it('fills and confirms form', function() {
     cy.visit('localhost:3000')
