@@ -44,6 +44,7 @@ jobs:
       # Run the tests
       - run: bundle exec rake
 
+      # Run e2e tests
       - restore_cache:
           keys:
             - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
