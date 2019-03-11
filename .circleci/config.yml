@@ -76,3 +76,12 @@ jobs:
           path: cypress/videos
       - store_artifacts:
           path: cypress/screenshots
+
+workflows:
+  version: 2
+  run-lint-and-tests:
+    jobs:
+      - checkout_code
+      - bundle_yarn:
+          requires:
+            - checkout_code
