@@ -1,102 +1,77 @@
-# version: 2
+version: 2.1
 
-# jobs:
-#   build:
-#     docker:
-#       - image: circleci/ruby:2.5.3-node
-#         environment:
-#           PGHOST: localhost
-#           PGUSER: docker_rails_app
-#           RAILS_ENV: test
-#       - image: postgres:9.5
-#         environment:
-#           POSTGRES_USER: postgres
-#           POSTGRES_DB: docker_rails_app_test
-#           POSTGRES_PASSWORD: ""
-#       - image: cypress/base:8
-#     working_directory: ~/docker_rails_app
-#     parallelism: 1
-#     steps:
-#       - checkout
+orbs:
+  aws-cli: circleci/aws-cli@0.1.11
 
-#       - type: cache-restore
-#         name: Restore bundle cache
-#         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
+commands:
+  build_app:
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - run: yarn build
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - build
 
-#       # Bundle install dependencies
-#       - run: bundle install --path vendor/bundle
+executors:
+  node-machine:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:10.15.0-stretch
 
-#       # Cache Dependencies
-#       - type: cache-save
-#         name: Store bundle cache
-#         key: docker_rails_app-{{ checksum "Gemfile.lock" }}
-#         paths:
-#           - vendor/bundle
-
-#       # Wait for DB
-#       - run: dockerize -wait tcp://localhost:5432 -timeout 1m
-
-#       # Run the tests
-#       - run: bundle exec rake
-#       - run: npm ci
-#       - save_cache:
-#           key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
-#           paths:
-#             - ~/.npm
-#             - ~/.cache
-
-#       - run:
-#           name: Running E2E tests
-#           command: $(npm bin)/cypress run
-
-#       - store_test_results:
-#           path: junit-results
-#       - run:
-#           name: Running E2E tests with multiple reporters
-#           command: npm run test-multiple
-#       - store_test_results:
-#           path: multiple-results
-#       - store_artifacts:
-#           path: cypress/videos
-#       - store_artifacts:
-#           path: cypress/screenshots
-
-
-version: 2
+  python-machine:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:2.7-jessie
 
 jobs:
-  build:
+  checkout_code:
+    executor: node-machine
+    steps:
+      - checkout
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - .
+
+  bundle_yarn:
+    executor: node-machine
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - restore_cache:
+          keys:
+            - build-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+            - build-cache-{{ checksum "yarn.lock" }}-
+            - build-cache-
+      - run: yarn install --frozen-lockfile
+      - run: mkdir -p ~/repo/.Cypress
+      - run: if [ -r ~/.cache/Cypress ]; then rm -rf ~/repo/.Cypress/*; mv ~/.cache/Cypress ~/repo/.Cypress; fi
+      - save_cache:
+          key: build-cache-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          paths:
+            - ~/repo/node_modules
+            - ~/repo/.Cypress
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - node_modules
+            - .Cypress
+
+  run_end_to_end_tests:
+    working_directory: ~/repo
     docker:
-      # the Docker image with Cypress dependencies
       - image: cypress/base:8
         environment:
           ## this enables colors in the output
           TERM: xterm
-    working_directory: ~/app
-    parallelism: 1
     steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
-            - v2-deps-{{ .Branch }}-
-            - v2-deps-
-      - run: npm ci
-      - save_cache:
-          key: v2-deps-{{ .Branch }}-{{ checksum "package-lock.json" }}
-          paths:
-            - ~/.npm
-            - ~/.cache
+      - attach_workspace:
+          at: ~/repo
       - run:
-          name: Running E2E tests with JUnit reporter
-          command: npm run test-junit
-      - store_test_results:
-          path: junit-results
-      - run:
-          name: Running E2E tests with multiple reporters
-          command: npm run test-multiple
-      - store_test_results:
-          path: multiple-results
+          name: Running E2E tests
+          command: CYPRESS_CACHE_FOLDER=~/repo/.Cypress/Cypress yarn cypress:run
       - store_artifacts:
           path: cypress/videos
       - store_artifacts:
