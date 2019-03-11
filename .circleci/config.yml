@@ -85,3 +85,6 @@ workflows:
       - bundle_yarn:
           requires:
             - checkout_code
+      - run_end_to_end_tests:
+          requires:
+            - checkout_code
