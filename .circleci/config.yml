@@ -11,8 +11,8 @@ jobs:
           RAILS_ENV: test
       - image: postgres:9.5
         environment:
-          POSTGRES_USER: your-app-name
-          POSTGRES_DB: your-app-name_test
+          POSTGRES_USER: db
+          POSTGRES_DB: postgres
           POSTGRES_PASSWORD: ""
       - image: cypress/base:8
         environment:
